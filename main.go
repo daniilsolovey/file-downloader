@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -16,11 +17,12 @@ import (
 var (
 	version = "0.1"
 	usage   = os.ExpandEnv(`
-app for downloading addons with .jar extentions to the directory and setting environment variable ADDON_PATH 
+App for downloading file with .jar extentions to the directory and setting environment variable FILE_PATH
+For set environment variable globally, run this app with 'eval' command
 
-<url> 						Downloading from this url
-<destination_dir>   		Directory for saving file
-<file_name>   				Name of saved file with extention
+<url>				    Downloading from this url
+<destination_dir>		Directory for saving file
+<file_name>			    Name of saved file with extention
 
 
 Usage:
@@ -64,21 +66,18 @@ func main() {
 			panic(err)
 		}
 
-		err = os.Setenv("ADDON_PATH", absPathToCreatedFile)
-		if err != nil {
-			panic(err)
-		}
-
 		log.Infof(
 			nil,
-			"addon saved, environment variable: ADDON_PATH:%s",
+			"addon saved, environment variable: FILE_PATH:%s",
 			absPathToCreatedFile,
 		)
+
+		fmt.Printf("\nFILE_PATH='%s'", absPathToCreatedFile)
 
 		return
 	}
 
-	fileInDir, err := getNameOfOneFileInDirectory(destinationDir)
+	fileInDir, err := getNameOfFileInDirectory(destinationDir)
 	if err != nil {
 		panic(err)
 	}
@@ -89,17 +88,13 @@ func main() {
 		panic(err)
 	}
 
-	os.Setenv("ADDON_PATH", absPathToExistsFile)
-	if err != nil {
-		panic(err)
-	}
-
 	log.Infof(
 		nil,
-		"addon already exists, environment variable: ADDON_PATH:%s",
+		"addon already exists, environment variable: FILE_PATH:%s",
 		absPathToExistsFile,
 	)
 
+	fmt.Printf("\nFILE_PATH='%s'", absPathToExistsFile)
 }
 
 func saveAddon(url, destinationDir, fileName string) error {
@@ -151,7 +146,7 @@ func saveAddon(url, destinationDir, fileName string) error {
 		if err != nil {
 			return karma.Format(
 				err,
-				"unable to write response from url to file, url:%s, file: %s",
+				"unable to write response from url to file, url: %s, file: %s",
 				url,
 				filePath,
 			)
@@ -178,7 +173,7 @@ func isEmptyDir(directory string) (bool, error) {
 	return false, nil
 }
 
-func getNameOfOneFileInDirectory(directory string) (string, error) {
+func getNameOfFileInDirectory(directory string) (string, error) {
 	files, err := ioutil.ReadDir(directory)
 	if err != nil {
 		return "", err
@@ -196,7 +191,9 @@ func getNameOfOneFileInDirectory(directory string) (string, error) {
 
 	path := filepath.Join(directory, files[0].Name())
 	if filepath.Ext(path) != ".jar" {
-		err := errors.New("one file exists in directory, but this file doesn't have .jar extention")
+		err := errors.New(
+			"one file exists in directory, but this file doesn't have .jar extension",
+		)
 		return "", err
 	}
 
